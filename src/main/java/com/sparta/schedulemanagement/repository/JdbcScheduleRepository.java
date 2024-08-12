@@ -1,22 +1,27 @@
 package com.sparta.schedulemanagement.repository;
 
+import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
 import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
 import com.sparta.schedulemanagement.entity.Schedule;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 @Repository
-public class JdbcScheduleRepository{
+public class JdbcScheduleRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -24,6 +29,7 @@ public class JdbcScheduleRepository{
         jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
+    // 일정 저장
     public ScheduleResponseDto save(Schedule schedule) {
         schedule.setCreateDate(LocalDate.now());
         schedule.setModifyDate(LocalDate.now());
@@ -31,7 +37,7 @@ public class JdbcScheduleRepository{
         String sql = "INSERT INTO schedule(name, password, content, create_date, modify_date) VALUES(?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder(); // 기본 키를 반환받기 위한 객체
 
-        jdbcTemplate.update( con -> {
+        jdbcTemplate.update(con -> {
                     PreparedStatement preparedStatement = con.prepareStatement(sql,
                             Statement.RETURN_GENERATED_KEYS);
 
@@ -51,11 +57,63 @@ public class JdbcScheduleRepository{
         return responseDto;
     }
 
-    public Optional<Schedule> findById(Long id) {
-        return Optional.empty();
+    // id 값으로 일정 찾기
+    public ScheduleResponseDto findById(int scheduleId) {
+        String sql = "SELECT * FROM schedule WHERE id = ?";
+        return jdbcTemplate.query(sql, resultSet -> {
+            if (resultSet.next()) {
+                ScheduleResponseDto responseDto = new ScheduleResponseDto();
+                responseDto.setId(resultSet.getInt("id"));
+                responseDto.setName(resultSet.getString("name"));
+                responseDto.setContent(resultSet.getString("content"));
+                responseDto.setCreateDate(resultSet.getTimestamp("create_date").toLocalDateTime().toLocalDate());
+                responseDto.setModifyDate(resultSet.getTimestamp("modify_date").toLocalDateTime().toLocalDate());
+                return responseDto;
+            } else {
+                return null;
+            }
+        }, scheduleId);
     }
 
-    public List<Schedule> findAll() {
-        return List.of();
+    // 일정 전부 조회
+    public List<ScheduleResponseDto> findAll() {
+        String sql = "SELECT * FROM schedule";
+        return jdbcTemplate.query(sql, new RowMapper<ScheduleResponseDto>() {
+            public ScheduleResponseDto mapRow(ResultSet rs, int rowNum) throws SQLException {
+                int id = rs.getInt("id");
+                String name = rs.getString("name");
+                String content = rs.getString("content");
+                LocalDate createDate = rs.getTimestamp("create_date").toLocalDateTime().toLocalDate();
+                LocalDate modifyDate = rs.getTimestamp("modify_date").toLocalDateTime().toLocalDate();
+                return new ScheduleResponseDto(id, name, content, createDate, modifyDate);
+            }
+        });
+    }
+
+    // 일정 수정
+    public ScheduleResponseDto update(int id, ScheduleRequestDto requestDto) {
+        String sql = "SELECT password FROM schedule WHERE id = ?";
+        String password = jdbcTemplate.queryForObject(sql, String.class, id);
+        if (password.equals(requestDto.getPassword())) {
+            String updateSql = "UPDATE schedule SET name = ?, content = ?, modify_date = ? WHERE id = ?";
+            LocalDate modifyDate = LocalDate.now();
+//            LocalDate modifyDateTest = LocalDate.of(2025,12,25); // 임의로 지정한 날짜 테스트
+            jdbcTemplate.update(updateSql, requestDto.getName(), requestDto.getContent(), modifyDate, id);
+            return findById(id);
+        } else {
+            return null;
+        }
+    }
+
+    public boolean delete(int id, ScheduleRequestDto requestDto) {
+        String sql = "SELECT password FROM schedule WHERE id = ?";
+        String password = jdbcTemplate.queryForObject(sql, String.class, id);
+        if (password.equals(requestDto.getPassword())) {
+            String deleteSql = "DELETE FROM schedule WHERE id = ?";
+            jdbcTemplate.update(deleteSql, id);
+            return true;
+        } else {
+            return false;
+        }
     }
 }

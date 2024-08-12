@@ -1,13 +1,15 @@
 package com.sparta.schedulemanagement.controller;
 import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
 import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
+import com.sparta.schedulemanagement.entity.Schedule;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
 import com.sparta.schedulemanagement.service.ScheduleService;
+import lombok.Getter;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -23,13 +25,43 @@ public class ScheduleController {
         this.jdbcScheduleRepository = jdbcScheduleRepository;
     }
 
+    // 일정 생성
     @PostMapping("/schedules")
     public ScheduleResponseDto createSchedule(@RequestBody ScheduleRequestDto scheduleRequestDto) {
         System.out.println("test");
         ScheduleResponseDto responseDto = scheduleService.save(scheduleRequestDto);
-        if(responseDto != null) {
+        if (responseDto != null) {
             return responseDto;
-        };
+        }
+        ;
         return null;
+    }
+
+    // 단일 일정 조회
+    @GetMapping("/schedules/{scheduleId}")
+    public ScheduleResponseDto getSchedule(@PathVariable int scheduleId) {
+        return scheduleService.findById(scheduleId);
+    }
+
+    // 일정 리스트 조회
+    @GetMapping("/schedules")
+    public List<ScheduleResponseDto> getScheduleList() {
+        return scheduleService.findAll();
+    }
+
+    // 일정 내용 변경
+    @PostMapping("/schedules/{scheduleId}")
+    public ScheduleResponseDto updateSchedule(@PathVariable int scheduleId, @RequestBody ScheduleRequestDto scheduleRequestDto) {
+        return scheduleService.update(scheduleId, scheduleRequestDto);
+    }
+
+    // 일정 삭제
+    @DeleteMapping("/schedules/{scheduleId}")
+    public ResponseEntity<String> delete(@PathVariable int scheduleId, @RequestBody ScheduleRequestDto scheduleRequestDto) {
+        if (scheduleService.delete(scheduleId, scheduleRequestDto)) {
+            return ResponseEntity.ok("Deleted Successfully");
+        } else {
+            return ResponseEntity.status(404).body("Schedule Not Found");
+        }
     }
 }

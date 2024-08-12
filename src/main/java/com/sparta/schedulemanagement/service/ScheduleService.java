@@ -6,6 +6,8 @@ import com.sparta.schedulemanagement.entity.Schedule;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ScheduleService {
 
@@ -17,7 +19,22 @@ public class ScheduleService {
 
     public ScheduleResponseDto save(ScheduleRequestDto scheduleRequestDto) {
         Schedule schedule = new Schedule(scheduleRequestDto);
-        ScheduleResponseDto responseDto = scheduleRepository.save(schedule);
-        return responseDto;
+        return scheduleRepository.save(schedule);
+    }
+
+    public ScheduleResponseDto findById(int scheduleId) {
+        return scheduleRepository.findById(scheduleId);
+    }
+
+    public List<ScheduleResponseDto> findAll() {
+        return scheduleRepository.findAll();
+    }
+
+    public ScheduleResponseDto update(int id, ScheduleRequestDto requestDto) {
+        return scheduleRepository.update(id, requestDto);
+    }
+
+    public boolean delete(int id, ScheduleRequestDto requestDto) {
+        return scheduleRepository.delete(id, requestDto);
     }
 }
