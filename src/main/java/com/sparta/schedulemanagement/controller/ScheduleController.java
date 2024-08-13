@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -28,7 +29,6 @@ public class ScheduleController {
     // 일정 생성
     @PostMapping("/schedules")
     public ScheduleResponseDto createSchedule(@RequestBody ScheduleRequestDto scheduleRequestDto) {
-        System.out.println("test");
         ScheduleResponseDto responseDto = scheduleService.save(scheduleRequestDto);
         if (responseDto != null) {
             return responseDto;
@@ -45,8 +45,8 @@ public class ScheduleController {
 
     // 일정 리스트 조회
     @GetMapping("/schedules")
-    public List<ScheduleResponseDto> getScheduleList() {
-        return scheduleService.findAll();
+    public List<ScheduleResponseDto> getScheduleList(@RequestParam (required = false) LocalDate modifyDate, @RequestParam (required = false) String name) {
+        return scheduleService.findAll(modifyDate, name);
     }
 
     // 일정 내용 변경

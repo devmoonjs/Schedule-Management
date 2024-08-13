@@ -6,6 +6,7 @@ import com.sparta.schedulemanagement.entity.Schedule;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -26,8 +27,8 @@ public class ScheduleService {
         return scheduleRepository.findById(scheduleId);
     }
 
-    public List<ScheduleResponseDto> findAll() {
-        return scheduleRepository.findAll();
+    public List<ScheduleResponseDto> findAll(LocalDate modifyDate, String name) {
+        return scheduleRepository.findAll(modifyDate, name);
     }
 
     public ScheduleResponseDto update(int id, ScheduleRequestDto requestDto) {

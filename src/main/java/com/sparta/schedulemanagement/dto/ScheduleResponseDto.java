@@ -25,10 +25,10 @@ public class ScheduleResponseDto {
         this.modifyDate = schedule.getModifyDate();
     }
 
-    public ScheduleResponseDto(int id, String content, String name, LocalDate createDate, LocalDate modifyDate) {
+    public ScheduleResponseDto(int id, String name, String content, LocalDate createDate, LocalDate modifyDate) {
         this.id = id;
-        this.content = content;
         this.name = name;
+        this.content = content;
         this.createDate = createDate;
         this.modifyDate = modifyDate;
     }

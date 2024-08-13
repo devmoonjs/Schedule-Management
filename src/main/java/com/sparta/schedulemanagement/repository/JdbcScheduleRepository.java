@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,6 +34,11 @@ public class JdbcScheduleRepository {
     public ScheduleResponseDto save(Schedule schedule) {
         schedule.setCreateDate(LocalDate.now());
         schedule.setModifyDate(LocalDate.now());
+
+        // 날짜 변경 테스트
+//        schedule.setCreateDate(LocalDate.of(2023,6,20));
+//        schedule.setModifyDate(LocalDate.of(2023,6,20));
+
 
         String sql = "INSERT INTO schedule(name, password, content, create_date, modify_date) VALUES(?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder(); // 기본 키를 반환받기 위한 객체
@@ -76,8 +82,27 @@ public class JdbcScheduleRepository {
     }
 
     // 일정 전부 조회
-    public List<ScheduleResponseDto> findAll() {
-        String sql = "SELECT * FROM schedule";
+    public List<ScheduleResponseDto> findAll(LocalDate modifyDate, String name) {
+        String sql = "SELECT * FROM schedule ";
+        List<Object> param = new ArrayList<>();
+
+        // 값이 두개 들어왔을 때
+        if (modifyDate != null && name != null) {
+            sql += "WHERE modify_date < ? AND name = ? ORDER BY modify_date DESC";
+            param.add(modifyDate);
+            param.add(name);
+
+        // 값이 날짜만 들어왔을 때
+        } else if (modifyDate != null) {
+            sql += "WHERE modify_date < ? ORDER BY modify_date DESC";
+            param.add(modifyDate);
+
+        // 값이 담당자명만 들어왔을 때
+        } else if (name != null) {
+            sql += "WHERE name = ? ORDER BY modify_date DESC";
+            param.add(name);
+        }
+
         return jdbcTemplate.query(sql, new RowMapper<ScheduleResponseDto>() {
             public ScheduleResponseDto mapRow(ResultSet rs, int rowNum) throws SQLException {
                 int id = rs.getInt("id");
@@ -87,7 +112,7 @@ public class JdbcScheduleRepository {
                 LocalDate modifyDate = rs.getTimestamp("modify_date").toLocalDateTime().toLocalDate();
                 return new ScheduleResponseDto(id, name, content, createDate, modifyDate);
             }
-        });
+        } ,param.toArray());
     }
 
     // 일정 수정
