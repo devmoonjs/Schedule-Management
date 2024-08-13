@@ -5,6 +5,9 @@ import com.sparta.schedulemanagement.dto.ManagerResponseDto;
 import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
 import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
 import com.sparta.schedulemanagement.entity.Schedule;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -34,11 +37,6 @@ public class JdbcScheduleRepository {
     public ScheduleResponseDto save(ScheduleRequestDto requestDto) {
         requestDto.setCreateDate(LocalDate.now());
         requestDto.setModifyDate(LocalDate.now());
-
-        // 날짜 변경 테스트
-//        schedule.setCreateDate(LocalDate.of(2023,6,20));
-//        schedule.setModifyDate(LocalDate.of(2023,6,20));
-
 
         String sql = "INSERT INTO schedule(manager_id, password, content, create_date, modify_date) VALUES(?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder(); // 기본 키를 반환받기 위한 객체
@@ -81,38 +79,40 @@ public class JdbcScheduleRepository {
         }, scheduleId);
     }
 
-    // 일정 전부 조회
-    public List<ScheduleResponseDto> findAll(LocalDate modifyDate, int managerId) {
-        String sql = "SELECT * FROM schedule ";
+    // 일정 전부 조회 - 페이징 처리
+    public List<ScheduleResponseDto> findAll(LocalDate modifyDate, Integer managerId, Pageable pageable) {
+        String sql = "SELECT * FROM schedule";
         List<Object> param = new ArrayList<>();
 
-        // 값이 두개 들어왔을 때
-        if (modifyDate != null && managerId != 0) {
-            sql += "WHERE modify_date < ? AND manager_id = ? ORDER BY modify_date DESC";
+        if (modifyDate != null && managerId != null) { // 값이 두개 들어왔을 때
+            sql += " WHERE modify_date < ? AND manager_id = ? ORDER BY modify_date DESC";
             param.add(modifyDate);
             param.add(managerId);
-
-            // 값이 날짜만 들어왔을 때
-        } else if (modifyDate != null) {
-            sql += "WHERE modify_date < ? ORDER BY modify_date DESC";
+        } else if (modifyDate == null && managerId == null) { // 값이 아무것도 없을 때
+          sql += " ORDER BY modify_date DESC";
+        } else if (modifyDate != null) { // 값이 수정일만 들어왔을 때
+            sql += " WHERE modify_date < ? ORDER BY modify_date DESC";
             param.add(modifyDate);
 
-            // 값이 담당자명만 들어왔을 때
-        } else if (managerId != 0) {
-            sql += "WHERE manager_id = ? ORDER BY modify_date DESC";
+
+        } else if (managerId != null) { // 값이 담당자명만 들어왔을 때
+            sql += " WHERE manager_id = ? ORDER BY modify_date DESC";
             param.add(managerId);
         }
 
-        return jdbcTemplate.query(sql, new RowMapper<ScheduleResponseDto>() {
-            public ScheduleResponseDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-                int scheduleId = rs.getInt("schedule_id");
-                int managerId = rs.getInt("manager_id");
-                String content = rs.getString("content");
-                LocalDate createDate = rs.getTimestamp("create_date").toLocalDateTime().toLocalDate();
-                LocalDate modifyDate = rs.getTimestamp("modify_date").toLocalDateTime().toLocalDate();
-                return new ScheduleResponseDto(scheduleId, managerId, content, createDate, modifyDate);
-            }
-        }, param.toArray());
+        sql += " LIMIT ? OFFSET ?";
+        param.add(pageable.getPageSize());
+        param.add(pageable.getOffset());
+
+        return jdbcTemplate.query(sql, param.toArray(), (rs, rowNum) -> {
+            int scheduleId = rs.getInt("schedule_id");
+            int managerIdResult = rs.getInt("manager_id");
+            String content = rs.getString("content");
+            LocalDate createDate = rs.getTimestamp("create_date").toLocalDateTime().toLocalDate();
+            LocalDate modifyDateResult = rs.getTimestamp("modify_date").toLocalDateTime().toLocalDate();
+            return new ScheduleResponseDto(scheduleId, managerIdResult, content, createDate, modifyDateResult);
+        });
+//        return new PageImpl<>(results, pageable, results.size());
     }
 
     // 일정 수정

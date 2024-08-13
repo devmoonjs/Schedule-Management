@@ -5,6 +5,10 @@ import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
 import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
 import com.sparta.schedulemanagement.service.ScheduleService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -40,8 +44,11 @@ public class ScheduleController {
 
     // 일정 리스트 조회
     @GetMapping("/schedules")
-    public List<ScheduleResponseDto> getScheduleList(@RequestParam (required = false) LocalDate modifyDate, @RequestParam (required = false) int managerId) {
-        return scheduleService.findAll(modifyDate, managerId);
+    public List<ScheduleResponseDto> getScheduleList(
+            @PageableDefault(page = 0, size = 1, sort = "scheduleId", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam (required = false) LocalDate modifyDate,
+            @RequestParam (required = false) Integer managerId) {
+        return scheduleService.findAll(modifyDate, managerId, pageable);
     }
 
     // 일정 내용 변경

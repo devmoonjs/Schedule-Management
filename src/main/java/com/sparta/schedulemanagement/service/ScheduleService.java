@@ -7,6 +7,8 @@ import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
 import com.sparta.schedulemanagement.entity.Manager;
 import com.sparta.schedulemanagement.entity.Schedule;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -30,8 +32,8 @@ public class ScheduleService {
         return scheduleRepository.findById(scheduleId);
     }
 
-    public List<ScheduleResponseDto> findAll(LocalDate modifyDate, int managerId) {
-        return scheduleRepository.findAll(modifyDate, managerId);
+    public List<ScheduleResponseDto> findAll(LocalDate modifyDate, Integer managerId, Pageable pageable) {
+        return scheduleRepository.findAll(modifyDate, managerId, pageable);
     }
 
     public ScheduleResponseDto update(int scheduleId, ScheduleRequestDto requestDto) {
