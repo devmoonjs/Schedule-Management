@@ -13,14 +13,14 @@ import java.time.LocalDate;
 public class Schedule {
     int id;
     String content;
-    String name;
+    int managerId;
     String password;
     LocalDate createDate;
     LocalDate modifyDate;
 
     public Schedule(ScheduleRequestDto scheduleRequestDto) {
         this.content = scheduleRequestDto.getContent();
-        this.name = scheduleRequestDto.getName();
+        this.managerId = scheduleRequestDto.getManagerId();
         this.password = scheduleRequestDto.getPassword();
     }
 }

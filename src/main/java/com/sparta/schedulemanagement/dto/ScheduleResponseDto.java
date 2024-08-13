@@ -11,25 +11,32 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 public class ScheduleResponseDto {
-    int id;
+    int scheduleId;
+    int managerId;
     String content;
-    String name;
     LocalDate createDate;
     LocalDate modifyDate;
 
-    public ScheduleResponseDto(Schedule schedule) {
-        this.id = schedule.getId();
-        this.content = schedule.getContent();
-        this.name = schedule.getName();
-        this.createDate = schedule.getCreateDate();
-        this.modifyDate = schedule.getModifyDate();
-    }
+//    public ScheduleResponseDto(Schedule schedule) {
+//        this.id = schedule.getId();
+//        this.content = schedule.getContent();
+//        this.createDate = schedule.getCreateDate();
+//        this.modifyDate = schedule.getModifyDate();
+//    }
 
-    public ScheduleResponseDto(int id, String name, String content, LocalDate createDate, LocalDate modifyDate) {
-        this.id = id;
-        this.name = name;
+    public ScheduleResponseDto(int id, int managerId, String content, LocalDate createDate, LocalDate modifyDate) {
+        this.scheduleId = id;
+        this.managerId = managerId;
         this.content = content;
         this.createDate = createDate;
         this.modifyDate = modifyDate;
+    }
+
+    public ScheduleResponseDto(ScheduleRequestDto requestDto) {
+        this.scheduleId = requestDto.getScheduleId();
+        this.managerId = requestDto.getManagerId();
+        this.content = requestDto.getContent();
+        this.createDate = requestDto.getCreateDate();
+        this.modifyDate = requestDto.getModifyDate();
     }
 }

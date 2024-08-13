@@ -7,12 +7,10 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class ScheduleRequestDto {
-    int scheduleId;
+public class ManagerRequestDto {
     int managerId;
-    String content;
-    String password;
-    LocalDate createDate;
+    String name;
+    String email;
+    LocalDate registerDate;
     LocalDate modifyDate;
-
 }

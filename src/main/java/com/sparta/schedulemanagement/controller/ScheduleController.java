@@ -1,10 +1,10 @@
 package com.sparta.schedulemanagement.controller;
+import com.sparta.schedulemanagement.dto.ManagerRequestDto;
+import com.sparta.schedulemanagement.dto.ManagerResponseDto;
 import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
 import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
-import com.sparta.schedulemanagement.entity.Schedule;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
 import com.sparta.schedulemanagement.service.ScheduleService;
-import lombok.Getter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -29,12 +29,7 @@ public class ScheduleController {
     // 일정 생성
     @PostMapping("/schedules")
     public ScheduleResponseDto createSchedule(@RequestBody ScheduleRequestDto scheduleRequestDto) {
-        ScheduleResponseDto responseDto = scheduleService.save(scheduleRequestDto);
-        if (responseDto != null) {
-            return responseDto;
-        }
-        ;
-        return null;
+        return scheduleService.save(scheduleRequestDto);
     }
 
     // 단일 일정 조회
@@ -45,8 +40,8 @@ public class ScheduleController {
 
     // 일정 리스트 조회
     @GetMapping("/schedules")
-    public List<ScheduleResponseDto> getScheduleList(@RequestParam (required = false) LocalDate modifyDate, @RequestParam (required = false) String name) {
-        return scheduleService.findAll(modifyDate, name);
+    public List<ScheduleResponseDto> getScheduleList(@RequestParam (required = false) LocalDate modifyDate, @RequestParam (required = false) int managerId) {
+        return scheduleService.findAll(modifyDate, managerId);
     }
 
     // 일정 내용 변경
@@ -63,5 +58,17 @@ public class ScheduleController {
         } else {
             return ResponseEntity.status(404).body("Schedule Not Found");
         }
+    }
+
+    // 담당자 등록
+    @PostMapping("/managers")
+    public ManagerResponseDto createManager(@RequestBody ManagerRequestDto requestDto) {
+        return scheduleService.createManager(requestDto);
+    }
+
+    // 담당자 정보 등록
+    @PostMapping("/managers/{managerId}")
+    public ManagerResponseDto updateManager(@PathVariable int managerId, @RequestBody ManagerRequestDto requestDto) {
+        return scheduleService.updateManger(managerId, requestDto);
     }
 }
