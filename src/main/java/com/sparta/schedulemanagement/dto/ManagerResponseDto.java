@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -13,8 +14,8 @@ public class ManagerResponseDto {
     int managerId;
     String name;
     String email;
-    LocalDate registerDate;
-    LocalDate modifyDate;
+    LocalDateTime registerDate;
+    LocalDateTime modifyDate;
 
     public ManagerResponseDto(ManagerRequestDto requestDto) {
         this.managerId = requestDto.getManagerId();

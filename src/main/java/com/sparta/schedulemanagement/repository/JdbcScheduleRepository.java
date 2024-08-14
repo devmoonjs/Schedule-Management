@@ -16,6 +16,8 @@ import javax.sql.DataSource;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -36,8 +38,8 @@ public class JdbcScheduleRepository {
         findManagerById(requestDto.getManagerId());
 
         // 생성 및 수정 날짜 설정
-        requestDto.setCreateDate(LocalDate.now());
-        requestDto.setModifyDate(LocalDate.now());
+        requestDto.setCreateDate(LocalDateTime.now());
+        requestDto.setModifyDate(LocalDateTime.now());
 
         String sql = "INSERT INTO schedule(manager_id, password, content, create_date, modify_date) VALUES(?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder(); // 기본 키를 반환받기 위한 객체
@@ -57,9 +59,7 @@ public class JdbcScheduleRepository {
 
         requestDto.setScheduleId(Objects.requireNonNull(keyHolder.getKey()).intValue());
 
-        ScheduleResponseDto responseDto = new ScheduleResponseDto(requestDto);
-
-        return responseDto;
+        return new ScheduleResponseDto(requestDto);
     }
 
     // id 값으로 일정 찾기
@@ -71,8 +71,8 @@ public class JdbcScheduleRepository {
                             rs.getInt("schedule_id"),
                             rs.getInt("manager_id"),
                             rs.getString("content"),
-                            rs.getDate("create_date").toLocalDate(),
-                            rs.getDate("modify_date").toLocalDate()
+                            rs.getTimestamp("create_date").toLocalDateTime(),
+                            rs.getTimestamp("modify_date").toLocalDateTime()
                     )
             );
             return Optional.ofNullable(responseDto);
@@ -112,22 +112,49 @@ public class JdbcScheduleRepository {
             String content = rs.getString("content");
             LocalDate createDate = rs.getTimestamp("create_date").toLocalDateTime().toLocalDate();
             LocalDate modifyDateResult = rs.getTimestamp("modify_date").toLocalDateTime().toLocalDate();
-            return new ScheduleResponseDto(scheduleId, managerIdResult, content, createDate, modifyDateResult);
+            return new ScheduleResponseDto(scheduleId, managerIdResult, content, createDate.atStartOfDay(), modifyDateResult.atStartOfDay());
         });
     }
 
     // 일정 수정
     public Optional<ScheduleResponseDto> update(int scheduleId, ScheduleRequestDto requestDto) {
+
+        if (requestDto.getContent() == null && requestDto.getManagerId() == 0) {
+            throw new IllegalArgumentException("수정할 내용이 작성되지 않았습니다.");
+        } else if (requestDto.getContent() != null && requestDto.getManagerId() == 0) { // content 만 들어올 때
+            if (passwordCheck(scheduleId, requestDto)) {
+                String updateSql = "UPDATE schedule SET content = ?, modify_date = ? WHERE schedule_id = ?";
+                LocalDateTime modifyDate = LocalDateTime.now();
+                jdbcTemplate.update(updateSql, requestDto.getContent(), modifyDate, scheduleId);
+                return findById(scheduleId);
+            } else {
+                throw new EntityNotFoundException("Password is incorrect. 비밀번호를 다시 입력하세요.");
+            }
+        } else if (requestDto.getContent() == null) { // mangerId 만 들어올 때
+            if (passwordCheck(scheduleId, requestDto)) {
+                String updateSql = "UPDATE schedule SET manager_id = ?, modify_date = ? WHERE schedule_id = ?";
+                LocalDateTime modifyDate = LocalDateTime.now();
+                jdbcTemplate.update(updateSql, requestDto.getManagerId(), modifyDate, scheduleId);
+                return findById(scheduleId);
+            } else {
+                throw new EntityNotFoundException("Password is incorrect. 비밀번호를 다시 입력하세요.");
+            }
+        } else {
+            if (passwordCheck(scheduleId, requestDto)) {
+                String updateSql = "UPDATE schedule SET manager_id = ?, content = ?, modify_date = ? WHERE schedule_id = ?";
+                LocalDateTime modifyDate = LocalDateTime.now();
+                jdbcTemplate.update(updateSql, requestDto.getManagerId(), requestDto.getContent(), modifyDate, scheduleId);
+                return findById(scheduleId);
+            }
+        }
+        return Optional.empty();
+    }
+
+    // 비밀번호 체크
+    public boolean passwordCheck(int scheduleId, ScheduleRequestDto requestDto) {
         String sql = "SELECT password FROM schedule WHERE schedule_id = ?";
         String password = jdbcTemplate.queryForObject(sql, String.class, scheduleId);
-        if (password.equals(requestDto.getPassword())) {
-            String updateSql = "UPDATE schedule SET manager_id = ?, content = ?, modify_date = ? WHERE schedule_id = ?";
-            LocalDate modifyDate = LocalDate.now();
-            jdbcTemplate.update(updateSql, requestDto.getManagerId(), requestDto.getContent(), modifyDate, scheduleId);
-            return findById(scheduleId);
-        } else {
-            throw new EntityNotFoundException("Password is incorrect. 비밀번호를 다시 입력하세요.");
-        }
+        return requestDto.getPassword().equals(password);
     }
 
     // 일정 삭제
@@ -145,8 +172,8 @@ public class JdbcScheduleRepository {
 
     // 담당자 생성
     public ManagerResponseDto createManager(ManagerRequestDto requestDto) {
-        requestDto.setRegisterDate(LocalDate.now());
-        requestDto.setModifyDate(LocalDate.now());
+        requestDto.setRegisterDate(LocalDateTime.now());
+        requestDto.setModifyDate(LocalDateTime.now());
         String sql = "INSERT INTO manager (name, register_date, modify_date) values (?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder(); // 기본 키를 반환받기 위한 객체
 
@@ -169,7 +196,7 @@ public class JdbcScheduleRepository {
     // 담당자 정보 입력 (이메일)
     public ManagerResponseDto updateManger(int managerId, ManagerRequestDto requestDto) {
         String updateSql = "UPDATE manager SET email = ?, modify_date = ? WHERE manager_id = ?";
-        LocalDate modifyDate = LocalDate.now();
+        LocalDateTime modifyDate = LocalDateTime.now();
 
         jdbcTemplate.update(updateSql, requestDto.getEmail(), modifyDate, managerId);
         return managerFindById(managerId);
@@ -184,8 +211,8 @@ public class JdbcScheduleRepository {
                 responseDto.setManagerId(resultSet.getInt("manager_id"));
                 responseDto.setName(resultSet.getString("name"));
                 responseDto.setEmail(resultSet.getString("email"));
-                responseDto.setRegisterDate(resultSet.getTimestamp("register_date").toLocalDateTime().toLocalDate());
-                responseDto.setModifyDate(resultSet.getTimestamp("modify_date").toLocalDateTime().toLocalDate());
+                responseDto.setRegisterDate(LocalDateTime.from((TemporalAccessor) resultSet.getTimestamp("register_date")));
+                responseDto.setModifyDate(resultSet.getTimestamp("modify_date").toLocalDateTime().toLocalDate().atStartOfDay());
                 return responseDto;
             } else {
                 return null;

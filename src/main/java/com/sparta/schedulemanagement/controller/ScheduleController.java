@@ -67,7 +67,7 @@ public class ScheduleController {
         }
     }
 
-    // 담당자 등록
+    // 담당자 등록 (name)
     @PostMapping("/managers")
     public ManagerResponseDto createManager(@RequestBody ManagerRequestDto requestDto) {
         return scheduleService.createManager(requestDto);
