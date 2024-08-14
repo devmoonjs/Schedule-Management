@@ -6,6 +6,7 @@ import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
 import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
 import com.sparta.schedulemanagement.entity.Manager;
 import com.sparta.schedulemanagement.entity.Schedule;
+import com.sparta.schedulemanagement.exception.EntityNotFoundException;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +30,8 @@ public class ScheduleService {
     }
 
     public ScheduleResponseDto findById(int scheduleId) {
-        return scheduleRepository.findById(scheduleId);
+        return scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new EntityNotFoundException("Schedule Id " + scheduleId + " is not Found"));
     }
 
     public List<ScheduleResponseDto> findAll(LocalDate modifyDate, Integer managerId, Pageable pageable) {
@@ -37,7 +39,8 @@ public class ScheduleService {
     }
 
     public ScheduleResponseDto update(int scheduleId, ScheduleRequestDto requestDto) {
-        return scheduleRepository.update(scheduleId, requestDto);
+        return scheduleRepository.update(scheduleId, requestDto)
+                .orElseThrow(() -> new EntityNotFoundException("Scheule Id " + scheduleId + " is not Found"));
     }
 
     public boolean delete(int id, ScheduleRequestDto requestDto) {

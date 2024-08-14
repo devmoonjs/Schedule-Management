@@ -30,7 +30,7 @@ public class ScheduleController {
         this.jdbcScheduleRepository = jdbcScheduleRepository;
     }
 
-    // 일정 생성
+    // 일정 생성 (managerId, content, password)
     @PostMapping("/schedules")
     public ScheduleResponseDto createSchedule(@RequestBody ScheduleRequestDto scheduleRequestDto) {
         return scheduleService.save(scheduleRequestDto);
@@ -45,7 +45,7 @@ public class ScheduleController {
     // 일정 리스트 조회
     @GetMapping("/schedules")
     public List<ScheduleResponseDto> getScheduleList(
-            @PageableDefault(page = 0, size = 1, sort = "scheduleId", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(page = 0, size = 5, sort = "createDate", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam (required = false) LocalDate modifyDate,
             @RequestParam (required = false) Integer managerId) {
         return scheduleService.findAll(modifyDate, managerId, pageable);

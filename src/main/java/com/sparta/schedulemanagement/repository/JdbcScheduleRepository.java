@@ -4,25 +4,22 @@ import com.sparta.schedulemanagement.dto.ManagerRequestDto;
 import com.sparta.schedulemanagement.dto.ManagerResponseDto;
 import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
 import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
-import com.sparta.schedulemanagement.entity.Schedule;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+import com.sparta.schedulemanagement.exception.EntityNotFoundException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Repository
 public class JdbcScheduleRepository {
@@ -35,6 +32,10 @@ public class JdbcScheduleRepository {
 
     // 일정 저장
     public ScheduleResponseDto save(ScheduleRequestDto requestDto) {
+        // manager_id 유효성 체크
+        findManagerById(requestDto.getManagerId());
+
+        // 생성 및 수정 날짜 설정
         requestDto.setCreateDate(LocalDate.now());
         requestDto.setModifyDate(LocalDate.now());
 
@@ -62,21 +63,22 @@ public class JdbcScheduleRepository {
     }
 
     // id 값으로 일정 찾기
-    public ScheduleResponseDto findById(int scheduleId) {
+    public Optional<ScheduleResponseDto> findById(int scheduleId) {
         String sql = "SELECT * FROM schedule WHERE schedule_id = ?";
-        return jdbcTemplate.query(sql, resultSet -> {
-            if (resultSet.next()) {
-                ScheduleResponseDto responseDto = new ScheduleResponseDto();
-                responseDto.setScheduleId(resultSet.getInt("schedule_id"));
-                responseDto.setManagerId(resultSet.getInt("manager_id"));
-                responseDto.setContent(resultSet.getString("content"));
-                responseDto.setCreateDate(resultSet.getTimestamp("create_date").toLocalDateTime().toLocalDate());
-                responseDto.setModifyDate(resultSet.getTimestamp("modify_date").toLocalDateTime().toLocalDate());
-                return responseDto;
-            } else {
-                return null;
-            }
-        }, scheduleId);
+        try {
+            ScheduleResponseDto responseDto = jdbcTemplate.queryForObject(sql, new Object[]{scheduleId}, (rs, rowNum) ->
+                    new ScheduleResponseDto(
+                            rs.getInt("schedule_id"),
+                            rs.getInt("manager_id"),
+                            rs.getString("content"),
+                            rs.getDate("create_date").toLocalDate(),
+                            rs.getDate("modify_date").toLocalDate()
+                    )
+            );
+            return Optional.ofNullable(responseDto);
+        } catch (EmptyResultDataAccessException exception) { // 비어있는 객체라면 empty 반환
+            return Optional.empty();
+        }
     }
 
     // 일정 전부 조회 - 페이징 처리
@@ -89,7 +91,7 @@ public class JdbcScheduleRepository {
             param.add(modifyDate);
             param.add(managerId);
         } else if (modifyDate == null && managerId == null) { // 값이 아무것도 없을 때
-          sql += " ORDER BY modify_date DESC";
+            sql += " ORDER BY modify_date DESC";
         } else if (modifyDate != null) { // 값이 수정일만 들어왔을 때
             sql += " WHERE modify_date < ? ORDER BY modify_date DESC";
             param.add(modifyDate);
@@ -112,21 +114,19 @@ public class JdbcScheduleRepository {
             LocalDate modifyDateResult = rs.getTimestamp("modify_date").toLocalDateTime().toLocalDate();
             return new ScheduleResponseDto(scheduleId, managerIdResult, content, createDate, modifyDateResult);
         });
-//        return new PageImpl<>(results, pageable, results.size());
     }
 
     // 일정 수정
-    public ScheduleResponseDto update(int scheduleId, ScheduleRequestDto requestDto) {
+    public Optional<ScheduleResponseDto> update(int scheduleId, ScheduleRequestDto requestDto) {
         String sql = "SELECT password FROM schedule WHERE schedule_id = ?";
         String password = jdbcTemplate.queryForObject(sql, String.class, scheduleId);
         if (password.equals(requestDto.getPassword())) {
             String updateSql = "UPDATE schedule SET manager_id = ?, content = ?, modify_date = ? WHERE schedule_id = ?";
             LocalDate modifyDate = LocalDate.now();
-//            LocalDate modifyDateTest = LocalDate.of(2025,12,25); // 임의로 지정한 날짜 테스트
             jdbcTemplate.update(updateSql, requestDto.getManagerId(), requestDto.getContent(), modifyDate, scheduleId);
             return findById(scheduleId);
         } else {
-            return null;
+            throw new EntityNotFoundException("Password is incorrect. 비밀번호를 다시 입력하세요.");
         }
     }
 
@@ -191,5 +191,14 @@ public class JdbcScheduleRepository {
                 return null;
             }
         }, managerId);
+    }
+
+    // 담당자 유효성 체크
+    public void findManagerById(int managerId) {
+        String findManagerSql = "SELECT COUNT(*) FROM manager WHERE manager_id = ?";
+        int count = jdbcTemplate.queryForObject(findManagerSql, new Object[]{managerId}, Integer.class);
+        if (count == 0) {
+            throw new EntityNotFoundException("Manager Id " + managerId + " not Found. 담당자를 제대로 선택하세요.");
+        }
     }
 }
