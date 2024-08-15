@@ -1,14 +1,8 @@
 package com.sparta.schedulemanagement.service;
 
-import com.sparta.schedulemanagement.dto.ManagerRequestDto;
-import com.sparta.schedulemanagement.dto.ManagerResponseDto;
-import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
-import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
-import com.sparta.schedulemanagement.entity.Manager;
-import com.sparta.schedulemanagement.entity.Schedule;
+import com.sparta.schedulemanagement.dto.*;
 import com.sparta.schedulemanagement.exception.EntityNotFoundException;
 import com.sparta.schedulemanagement.repository.JdbcScheduleRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -24,8 +18,7 @@ public class ScheduleService {
         this.scheduleRepository = scheduleRepository;
     }
 
-    public ScheduleResponseDto save(ScheduleRequestDto scheduleRequestDto) {
-//        Schedule schedule = new Schedule(scheduleRequestDto);
+    public ScheduleResponseDto save(CreateScheduleRequestDto scheduleRequestDto) {
         return scheduleRepository.save(scheduleRequestDto);
     }
 
@@ -53,5 +46,9 @@ public class ScheduleService {
 
     public ManagerResponseDto updateManger(int managerId, ManagerRequestDto requestDto) {
         return scheduleRepository.updateManger(managerId, requestDto);
+    }
+
+    public boolean deleteManger(int mangerId) {
+        return scheduleRepository.deleteManger(mangerId);
     }
 }
