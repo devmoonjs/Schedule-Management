@@ -1,9 +1,6 @@
 package com.sparta.schedulemanagement.repository;
 
-import com.sparta.schedulemanagement.dto.ManagerRequestDto;
-import com.sparta.schedulemanagement.dto.ManagerResponseDto;
-import com.sparta.schedulemanagement.dto.ScheduleRequestDto;
-import com.sparta.schedulemanagement.dto.ScheduleResponseDto;
+import com.sparta.schedulemanagement.dto.*;
 import com.sparta.schedulemanagement.exception.EntityNotFoundException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +14,6 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +29,7 @@ public class JdbcScheduleRepository {
     }
 
     // 일정 저장
-    public ScheduleResponseDto save(ScheduleRequestDto requestDto) {
+    public ScheduleResponseDto save(CreateScheduleRequestDto requestDto) {
         // manager_id 유효성 체크
         findManagerById(requestDto.getManagerId());
 
@@ -90,18 +86,20 @@ public class JdbcScheduleRepository {
             sql += " WHERE modify_date < ? AND manager_id = ? ORDER BY modify_date DESC";
             param.add(modifyDate);
             param.add(managerId);
+
         } else if (modifyDate == null && managerId == null) { // 값이 아무것도 없을 때
             sql += " ORDER BY modify_date DESC";
+
         } else if (modifyDate != null) { // 값이 수정일만 들어왔을 때
             sql += " WHERE modify_date < ? ORDER BY modify_date DESC";
             param.add(modifyDate);
-
 
         } else if (managerId != null) { // 값이 담당자명만 들어왔을 때
             sql += " WHERE manager_id = ? ORDER BY modify_date DESC";
             param.add(managerId);
         }
 
+        // 페이징을 위한 LIMIT, OFFSET 설정
         sql += " LIMIT ? OFFSET ?";
         param.add(pageable.getPageSize());
         param.add(pageable.getOffset());
@@ -119,7 +117,7 @@ public class JdbcScheduleRepository {
     // 일정 수정
     public Optional<ScheduleResponseDto> update(int scheduleId, ScheduleRequestDto requestDto) {
 
-        if (requestDto.getContent() == null && requestDto.getManagerId() == 0) {
+        if (requestDto.getContent() == null && requestDto.getManagerId() == 0) { // 모든 정보가 들어오지 않을 떄
             throw new IllegalArgumentException("수정할 내용이 작성되지 않았습니다.");
         } else if (requestDto.getContent() != null && requestDto.getManagerId() == 0) { // content 만 들어올 때
             if (passwordCheck(scheduleId, requestDto)) {
@@ -139,7 +137,7 @@ public class JdbcScheduleRepository {
             } else {
                 throw new EntityNotFoundException("Password is incorrect. 비밀번호를 다시 입력하세요.");
             }
-        } else {
+        } else { // content, managerId 두 정보가 들어올 때
             if (passwordCheck(scheduleId, requestDto)) {
                 String updateSql = "UPDATE schedule SET manager_id = ?, content = ?, modify_date = ? WHERE schedule_id = ?";
                 LocalDateTime modifyDate = LocalDateTime.now();
@@ -202,7 +200,7 @@ public class JdbcScheduleRepository {
         return managerFindById(managerId);
     }
 
-    // 담당자 고유번호로 정보 찾기
+    // 담당자 고유번호로 담당자 정보 찾기
     public ManagerResponseDto managerFindById(int managerId) {
         String sql = "SELECT * FROM manager WHERE manager_id = ?";
         return jdbcTemplate.query(sql, resultSet -> {
@@ -211,8 +209,8 @@ public class JdbcScheduleRepository {
                 responseDto.setManagerId(resultSet.getInt("manager_id"));
                 responseDto.setName(resultSet.getString("name"));
                 responseDto.setEmail(resultSet.getString("email"));
-                responseDto.setRegisterDate(LocalDateTime.from((TemporalAccessor) resultSet.getTimestamp("register_date")));
-                responseDto.setModifyDate(resultSet.getTimestamp("modify_date").toLocalDateTime().toLocalDate().atStartOfDay());
+                responseDto.setRegisterDate(resultSet.getTimestamp("register_date").toLocalDateTime());
+                responseDto.setModifyDate(resultSet.getTimestamp("modify_date").toLocalDateTime());
                 return responseDto;
             } else {
                 return null;
@@ -227,5 +225,13 @@ public class JdbcScheduleRepository {
         if (count == 0) {
             throw new EntityNotFoundException("Manager Id " + managerId + " not Found. 담당자를 제대로 선택하세요.");
         }
+    }
+
+    public boolean deleteManger(int managerId) {
+        findManagerById(managerId); // 담당자 유효성 체크
+        String deleteSql = "DELETE FROM manager WHERE manager_id = ?";
+        jdbcTemplate.update(deleteSql, managerId);
+
+        return true;
     }
 }

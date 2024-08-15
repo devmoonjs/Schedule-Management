@@ -1,11 +1,8 @@
 package com.sparta.schedulemanagement.dto;
 
-import com.sparta.schedulemanagement.entity.Schedule;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -26,7 +23,7 @@ public class ScheduleResponseDto {
         this.modifyDate = modifyDate;
     }
 
-    public ScheduleResponseDto(ScheduleRequestDto requestDto) {
+    public ScheduleResponseDto(CreateScheduleRequestDto requestDto) {
         this.scheduleId = requestDto.getScheduleId();
         this.managerId = requestDto.getManagerId();
         this.content = requestDto.getContent();
