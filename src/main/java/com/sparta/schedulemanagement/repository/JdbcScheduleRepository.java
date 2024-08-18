@@ -24,8 +24,12 @@ public class JdbcScheduleRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public JdbcScheduleRepository(DataSource dataSource) {
-        jdbcTemplate = new JdbcTemplate(dataSource);
+//    public JdbcScheduleRepository(DataSource dataSource) {
+//        jdbcTemplate = new JdbcTemplate(dataSource);
+//    }
+
+    public JdbcScheduleRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     // 일정 저장
